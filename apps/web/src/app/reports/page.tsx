@@ -171,7 +171,13 @@ export default function ReportsPage() {
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
                     <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} width={130} />
                     <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '13px' }}
-                      formatter={(value: number, name: string) => [name === 'quantity' ? `${value} units` : `$${value.toFixed(2)}`, name === 'quantity' ? 'Sold' : 'Revenue']} cursor={{ fill: '#f1f5f9' }} />
+                      formatter={(value?: number, name?: string) => [
+                        name === 'quantity'
+                          ? `${value ?? 0} units`
+                          : `$${(value ?? 0).toFixed(2)}`,
+                        name === 'quantity' ? 'Sold' : 'Revenue',
+                      ]}
+                       cursor={{ fill: '#f1f5f9' }} />
                     <Bar dataKey="quantity" radius={[0, 6, 6, 0]} barSize={24}>
                       {topChartData.map((_, i) => <Cell key={i} fill="#10b981" fillOpacity={1 - i * 0.08} />)}
                     </Bar>

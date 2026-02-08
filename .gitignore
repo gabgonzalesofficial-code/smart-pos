@@ -1,0 +1,21 @@
+# Env files
+.env
+.env.*
+!.env.example
+
+# Prisma env
+/packages/prisma/.env
+
+# Vercel
+.vercel
+
+# Railway
+.railway
+
+# Logs
+logs/
+*.log
+
+# dependencies
+node_modules
+**/node_modules

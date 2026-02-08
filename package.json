@@ -1,0 +1,30 @@
+{
+  "name": "smart-pos-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade POS System Monorepo",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "cd packages/prisma && npm run generate",
+    "db:migrate": "cd packages/prisma && npm run migrate:dev",
+    "db:studio": "cd packages/prisma && npm run studio",
+    "db:seed": "cd packages/prisma && npm run seed",
+    "prisma:build": "cd packages/prisma && npm run build"
+  },
+  "devDependencies": {
+    "turbo": "^1.11.2",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

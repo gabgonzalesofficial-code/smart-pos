@@ -1,0 +1,269 @@
+// Prisma Schema for Smart POS System
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  CASHIER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  role      UserRole @default(CASHIER)
+  isActive  Boolean  @default(true) @map("is_active")
+
+  // Relations
+  sales     Sale[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// ============================================
+// PRODUCT & INVENTORY
+// ============================================
+
+model Product {
+  id             String   @id @default(uuid())
+  barcode        String   @unique
+  name           String
+  description    String?  @db.Text
+  price          Decimal  @db.Decimal(10, 2)
+  cost           Decimal? @db.Decimal(10, 2)
+  category       String?
+  imageUrl       String?  @map("image_url")
+  isActive       Boolean  @default(true) @map("is_active")
+  trackInventory Boolean  @default(true) @map("track_inventory")
+
+  // Relations
+  supplierId    String?        @map("supplier_id")
+  supplier      Supplier?      @relation(fields: [supplierId], references: [id])
+  saleItems     SaleItem[]
+  inventoryLogs InventoryLog[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([barcode])
+  @@index([category])
+  @@index([isActive])
+  @@map("products")
+}
+
+model Supplier {
+  id            String  @id @default(uuid())
+  name          String
+  contactPerson String? @map("contact_person")
+  email         String?
+  phone         String?
+  address       String? @db.Text
+  isActive      Boolean @default(true) @map("is_active")
+
+  // Relations
+  products Product[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("suppliers")
+}
+
+enum InventoryAction {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  SALE
+  RETURN
+  TRANSFER_IN
+  TRANSFER_OUT
+}
+
+model InventoryLog {
+  id        String          @id @default(uuid())
+  productId String          @map("product_id")
+  product   Product         @relation(fields: [productId], references: [id])
+  quantity  Int
+  action    InventoryAction
+  notes     String?         @db.Text
+  reference String? // Reference to sale, purchase, transfer, etc.
+  userId    String?         @map("user_id") // Who performed the action
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("inventory_logs")
+}
+
+// ============================================
+// SALES & TRANSACTIONS
+// ============================================
+
+enum PaymentMethod {
+  CASH
+  CARD
+  GCASH
+  PAYMAYA
+  OTHER
+}
+
+enum SaleStatus {
+  COMPLETED
+  REFUNDED
+  CANCELLED
+  PENDING
+}
+
+model Sale {
+  id            String @id @default(uuid())
+  receiptNumber String @unique @map("receipt_number")
+  cashierId     String @map("cashier_id")
+  cashier       User   @relation(fields: [cashierId], references: [id])
+
+  // Sale Details
+  items    SaleItem[]
+  subtotal Decimal    @db.Decimal(10, 2)
+  discount Decimal    @default(0) @db.Decimal(10, 2)
+  tax      Decimal    @default(0) @db.Decimal(10, 2)
+  total    Decimal    @db.Decimal(10, 2)
+
+  // Payment
+  paymentMethod PaymentMethod @map("payment_method")
+  amountPaid    Decimal       @map("amount_paid") @db.Decimal(10, 2)
+  change        Decimal       @default(0) @db.Decimal(10, 2)
+
+  // Status & Metadata
+  status SaleStatus @default(COMPLETED)
+  notes  String?    @db.Text
+
+  // Offline Sync
+  isSynced Boolean   @default(true) @map("is_synced")
+  syncedAt DateTime? @map("synced_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([receiptNumber])
+  @@index([cashierId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([isSynced])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String  @map("sale_id")
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  discount  Decimal @default(0) @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+// ============================================
+// DISCOUNTS & PROMOTIONS
+// ============================================
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum DiscountStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+model Discount {
+  id          String         @id @default(uuid())
+  code        String?        @unique
+  name        String
+  description String?        @db.Text
+  type        DiscountType
+  value       Decimal        @db.Decimal(10, 2)
+  minPurchase Decimal?       @map("min_purchase") @db.Decimal(10, 2)
+  maxDiscount Decimal?       @map("max_discount") @db.Decimal(10, 2)
+  status      DiscountStatus @default(ACTIVE)
+  validFrom   DateTime?      @map("valid_from")
+  validUntil  DateTime?      @map("valid_until")
+  usageLimit  Int?           @map("usage_limit")
+  usedCount   Int            @default(0) @map("used_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@index([status])
+  @@map("discounts")
+}
+
+// ============================================
+// BRANCHES & MULTI-LOCATION (Future)
+// ============================================
+
+model Branch {
+  id       String  @id @default(uuid())
+  name     String
+  code     String  @unique
+  address  String? @db.Text
+  phone    String?
+  email    String?
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("branches")
+}
+
+// ============================================
+// SYNC & OFFLINE SUPPORT
+// ============================================
+
+model SyncLog {
+  id         String    @id @default(uuid())
+  entityType String    @map("entity_type") // 'sale', 'inventory', etc.
+  entityId   String    @map("entity_id")
+  action     String // 'create', 'update', 'delete'
+  data       Json // Entity data snapshot
+  status     String    @default("pending") // 'pending', 'synced', 'failed'
+  error      String?   @db.Text
+  syncedAt   DateTime? @map("synced_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([entityType, entityId])
+  @@map("sync_logs")
+}

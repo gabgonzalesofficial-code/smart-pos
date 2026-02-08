@@ -25,7 +25,7 @@ export const useAuthStore = create<AuthState>()(
       login: async (credentials: LoginRequest) => {
         try {
           const response = await apiClient.post<LoginResponse>(
-            '/auth/login',
+            'api/auth/login',
             credentials
           );
           set({

@@ -39,7 +39,7 @@ export default function TopProductsChart({ data, isLoading }: TopProductsChartPr
             <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} width={130} />
             <Tooltip
               contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '13px' }}
-              formatter={(value: number) => [`${value} units`, 'Sold']}
+              formatter={(value?: number) => [`${value ?? 0} units`, 'Sold']}
               cursor={{ fill: '#f1f5f9' }}
             />
             <Bar dataKey="sales" radius={[0, 6, 6, 0]} barSize={28}>

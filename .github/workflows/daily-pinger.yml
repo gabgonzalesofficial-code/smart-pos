@@ -12,4 +12,4 @@ jobs:
     steps:
       - name: Ping Render service
         run: |
-          curl -s -o /dev/null -w "%{http_code}\n" https://smart-pos-q77a.onrender.com/health
+          curl -s -o /dev/null -w "%{http_code}\n" https://smart-pos-q77a.onrender.com/api/health
